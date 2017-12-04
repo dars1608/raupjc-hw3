@@ -5,13 +5,13 @@ using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace zad1
+namespace zad1.Models
 {
     public class TodoItem
     {
-        private Guid Id { get; set; }
-        private string Text { get; set; }
-        private bool IsCompleted
+        public Guid Id { get; set; }
+        public string Text { get; set; }
+        public bool IsCompleted
         {
             get
             {
@@ -19,8 +19,8 @@ namespace zad1
             }
         }
 
-        private DateTime? DateCompleted { get; set; }
-        private DateTime DateCreated { get; set; }
+        public DateTime? DateCompleted { get; set; }
+        public DateTime DateCreated { get; set; }
 
         public TodoItem(string text)
         {
@@ -63,17 +63,17 @@ namespace zad1
         /// <summary >
         /// User id that owns this TodoItem
         /// </ summary >
-        private Guid UserId { get; set; }
+        public Guid UserId { get; set; }
 
         /// <summary>
         /// List of labels associated with TodoItem
         /// </ summary >
-        private List<TodoItemLabel> Labels { get; set; }
+        public List<TodoItemLabel> Labels { get; set; }
 
         /// <summary >
         /// Date due . If null , no date was set by the user
         /// </ summary >
-        private DateTime? DateDue { get; set; }
+        public DateTime? DateDue { get; set; }
 
         public TodoItem(string text, Guid userId)
         {
