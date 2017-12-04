@@ -20,48 +20,74 @@ namespace zad1.Models
         {
             if (_context.TodoItems.FirstOrDefault(i => i.Id.Equals(todoItem.Id)) != null) throw new DuplicateTodoItemException("duplicate id: { " + todoItem.Id + "}");
             _context.TodoItems.Add(todoItem);
+            _context.SaveChanges();
         }
 
         public TodoItem Get(Guid todoId, Guid userId)
         {
-            TodoItem ret = _context.TodoItems.FirstOrDefault(i => i.Id.Equals(todoId));
+            TodoItem ret = _context.TodoItems.Include().FirstOrDefault(i => i.Id.Equals(todoId));
             if (!ret.UserId.Equals(userId)) throw new TodoAccessDeniedException("User is not owner of that todo item");
             return ret;
         }
 
         public List<TodoItem> GetActive(Guid userId)
         {
-            throw new NotImplementedException();
+            return _context.TodoItems.Where(t => t.IsCompleted == false && t.UserId.Equals(userId)).ToList();
         }
 
         public List<TodoItem> GetAll(Guid userId)
         {
-            throw new NotImplementedException();
+            return _context.TodoItems.Where(t => t.UserId.Equals(userId)).OrderBy(t => t.DateCreated).ToList();
         }
 
         public List<TodoItem> GetCompleted(Guid userId)
         {
-            throw new NotImplementedException();
+            return _context.TodoItems.Where(t => t.IsCompleted == true && t.UserId.Equals(userId)).ToList();
         }
 
         public List<TodoItem> GetFiltered(Func<TodoItem, bool> filterFunction, Guid userId)
         {
-            throw new NotImplementedException();
+            if (_context.TodoItems.ToList().Count == 0) return null;
+            return _context.TodoItems.Where(t => filterFunction(t) && t.UserId.Equals(userId)).ToList();
         }
 
         public bool MarkAsCompleted(Guid todoId, Guid userId)
         {
-            throw new NotImplementedException();
+            TodoItem ret = Get(todoId, userId);
+            if (ret != null)
+            {
+                ret.MarkAsCompleted();
+                _context.SaveChanges();
+                return true;
+            }
+            return false;
         }
 
         public bool Remove(Guid todoId, Guid userId)
         {
-            throw new NotImplementedException();
+            TodoItem ret = Get(todoId, userId);
+            if (ret != null)
+            {
+                _context.TodoItems.Remove(ret);
+                _context.SaveChanges();
+                return true;
+            }
+            return false;
         }
 
         public void Update(TodoItem todoItem, Guid userId)
         {
-            throw new NotImplementedException();
+            TodoItem ret = Get(todoItem.Id, userId);
+            if (ret != null)
+            {
+                _context.TodoItems.Remove(todoItem);
+                Add(todoItem);
+            }
+            else
+            {
+                Add(todoItem);
+            }
+            _context.SaveChanges();
         }
     }
 }
