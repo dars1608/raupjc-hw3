@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.Entity;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -15,47 +16,49 @@ namespace zad1.Models
         public TodoSqlRepository(TodoDbContext context)
         {
             _context = context;
-        }
-        public void Add(TodoItem todoItem)
+        }
+
+        public async void Add(TodoItem todoItem)
         {
-            if (_context.TodoItems.FirstOrDefault(i => i.Id.Equals(todoItem.Id)) != null) throw new DuplicateTodoItemException("duplicate id: { " + todoItem.Id + "}");
+            TodoItem ret = await _context.TodoItems.FirstOrDefaultAsync(i => i.Id.Equals(todoItem.Id));
+            if (ret != null) throw new DuplicateTodoItemException("duplicate id: { " + todoItem.Id + "}");
             _context.TodoItems.Add(todoItem);
             _context.SaveChanges();
         }
 
-        public TodoItem Get(Guid todoId, Guid userId)
+        public async Task<TodoItem> Get(Guid todoId, Guid userId)
         {
-            TodoItem ret = _context.TodoItems.Include().FirstOrDefault(i => i.Id.Equals(todoId));
+            var ret = await _context.TodoItems.Include(t => t.Labels).FirstOrDefaultAsync(i => i.Id.Equals(todoId));
             if (!ret.UserId.Equals(userId)) throw new TodoAccessDeniedException("User is not owner of that todo item");
             return ret;
         }
 
-        public List<TodoItem> GetActive(Guid userId)
+        public async Task<List<TodoItem>> GetActive(Guid userId)
         {
-            return _context.TodoItems.Where(t => t.IsCompleted == false && t.UserId.Equals(userId)).ToList();
+            return await _context.TodoItems.Where(t => t.IsCompleted == false && t.UserId.Equals(userId)).ToListAsync();
         }
 
-        public List<TodoItem> GetAll(Guid userId)
+        public async Task<List<TodoItem>> GetAll(Guid userId)
         {
-            return _context.TodoItems.Where(t => t.UserId.Equals(userId)).OrderBy(t => t.DateCreated).ToList();
+            return await _context.TodoItems.Where(t => t.UserId.Equals(userId)).OrderBy(t => t.DateCreated).ToListAsync();
         }
 
-        public List<TodoItem> GetCompleted(Guid userId)
+        public async Task<List<TodoItem>> GetCompleted(Guid userId)
         {
-            return _context.TodoItems.Where(t => t.IsCompleted == true && t.UserId.Equals(userId)).ToList();
+            return await _context.TodoItems.Where(t => t.IsCompleted == true && t.UserId.Equals(userId)).ToListAsync();
         }
 
-        public List<TodoItem> GetFiltered(Func<TodoItem, bool> filterFunction, Guid userId)
+        public async Task<List<TodoItem>> GetFiltered(Func<TodoItem, bool> filterFunction, Guid userId)
         {
-            if (_context.TodoItems.ToList().Count == 0) return null;
-            return _context.TodoItems.Where(t => filterFunction(t) && t.UserId.Equals(userId)).ToList();
+            return await _context.TodoItems.Where(t => filterFunction(t) && t.UserId.Equals(userId)).ToListAsync();
         }
 
-        public bool MarkAsCompleted(Guid todoId, Guid userId)
+        public async Task<bool> MarkAsCompleted(Guid todoId, Guid userId)
         {
-            TodoItem ret = Get(todoId, userId);
+            TodoItem ret = await Get(todoId, userId);
             if (ret != null)
             {
+                _context.Entry(ret).State = EntityState.Modified;
                 ret.MarkAsCompleted();
                 _context.SaveChanges();
                 return true;
@@ -63,9 +66,9 @@ namespace zad1.Models
             return false;
         }
 
-        public bool Remove(Guid todoId, Guid userId)
+        public async Task<bool> Remove(Guid todoId, Guid userId)
         {
-            TodoItem ret = Get(todoId, userId);
+            TodoItem ret = await Get(todoId, userId);
             if (ret != null)
             {
                 _context.TodoItems.Remove(ret);
@@ -75,13 +78,13 @@ namespace zad1.Models
             return false;
         }
 
-        public void Update(TodoItem todoItem, Guid userId)
+        public async void Update(TodoItem todoItem, Guid userId)
         {
-            TodoItem ret = Get(todoItem.Id, userId);
+            TodoItem ret = await Get(todoItem.Id, userId);
             if (ret != null)
             {
-                _context.TodoItems.Remove(todoItem);
-                Add(todoItem);
+                _context.Entry(ret).State = EntityState.Modified;
+                ret = todoItem;
             }
             else
             {
